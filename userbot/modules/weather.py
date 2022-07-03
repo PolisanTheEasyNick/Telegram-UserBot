@@ -81,28 +81,37 @@ async def fetch_weather(weather):
                 await weather.edit(INV_PARAM)
                 return
             city = newcity[0].strip() + "," + countrycode.strip()
-
-    url = f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={OpenWeatherAPI}'
+    url = f'http://api.openweathermap.org/geo/1.0/direct?q={city}&appid={OpenWeatherAPI}'
     request = requests.get(url)
     result = loads(request.text)
-
+    if request.status_code != 200:
+        await weather.edit("Invalid parameters in geocoding url.")
+        return
+    lat = result[0]['lat']
+    lon = result[0]['lon']
+    cityName = result[0]['name']
+    country = result[0]['country']
+    url = f'https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&appid={OpenWeatherAPI}'
+    request = requests.get(url)
+    result = loads(request.text)
     if request.status_code != 200:
         await weather.edit(INV_PARAM)
         return
 
-    cityname = result['name']
-    curtemp = result['main']['temp']
-    humidity = result['main']['humidity']
-    min_temp = result['main']['temp_min']
-    max_temp = result['main']['temp_max']
-    desc = result['weather'][0]
-    desc = desc['main']
-    country = result['sys']['country']
-    sunrise = result['sys']['sunrise']
-    sunset = result['sys']['sunset']
-    wind = result['wind']['speed']
-    winddir = result['wind']['deg']
-
+    cityname = cityName
+    curtemp = result["current"]['temp']
+    humidity = result["current"]['humidity']
+    #desc = result['weather'][0]
+    #desc = desc['main']
+    sunrise = result["current"]["sunrise"]
+    sunset = result["current"]["sunset"]
+    wind = result["current"]["wind_speed"]
+    winddir = result["current"]["wind_deg"]
+    feels = result["current"]["feels_like"]
+    pressure = result["current"]["pressure"]
+    summary = result["current"]["weather"][0]["main"]
+    desc = result["current"]["weather"][0]["description"]
+    uvi = result["current"]["uvi"]
     ctimezone = tz(c_tz[country][0])
     time = datetime.now().strftime("%A, %I:%M %p")
     fullc_n = c_n[f"{country}"]
@@ -130,15 +139,15 @@ async def fetch_weather(weather):
         return suntime
 
     await weather.edit(
-        f"**Temperature:** `{celsius(curtemp)}°C | {fahrenheit(curtemp)}°F`\n"
-        +
-        f"**Min. Temp.:** `{celsius(min_temp)}°C | {fahrenheit(min_temp)}°F`\n"
-        +
-        f"**Max. Temp.:** `{celsius(max_temp)}°C | {fahrenheit(max_temp)}°F`\n"
-        + f"**Humidity:** `{humidity}%`\n" +
+        f"**Temperature:** `{celsius(curtemp)}°C | {fahrenheit(curtemp)}°F`\n" +
+        f"**Feels like:** `{celsius(feels)}°C | {fahrenheit(feels)}°F`\n" +
+        f"**UV Index:** `{uvi}`\n" +
+        f"**Pressure:** `{pressure} hPa`\n"
+        f"**Humidity:** `{humidity}%`\n" +
         f"**Wind:** `{kmph[0]} kmh | {mph[0]} mph, {findir}`\n" +
         f"**Sunrise:** `{sun(sunrise)}`\n" +
-        f"**Sunset:** `{sun(sunset)}`\n\n\n" + f"**{desc}**\n" +
+        f"**Sunset:** `{sun(sunset)}`\n\n\n" +
+        f"`{summary}, {desc}\n`"
         f"`{cityname}, {fullc_n}`\n" + f"`{time}`")
 
 @register(outgoing=True, pattern="^.forecast(?: |$)(.*)")
