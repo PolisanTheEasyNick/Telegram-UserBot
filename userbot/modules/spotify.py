@@ -63,8 +63,15 @@ async def update_spotify_info():
           oldsong = ""
           oldartist = ""
         date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        data = get_info()
-
+        while True:
+          try:
+            data = get_info()
+          except Exception as e:
+            if BOTLOG:
+              await bot.send_message(BOTLOG_CHATID, f"#SPOTIFY: Catched exception:\n{e}.\nWaiting 5 sec and trying again")
+            await sleep(5)
+            continue
+          break
         if data:
               try:
                 await sleep(1) #no need to spam?
