@@ -13,7 +13,7 @@ from shutil import rmtree
 from telethon import types, utils
 from urllib.error import HTTPError
 #from subprocess import call
-from emoji import get_emoji_regexp
+from emoji import emoji_list
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googletrans import LANGUAGES, Translator
@@ -287,7 +287,7 @@ async def _(event):
 
 def deEmojify(inputString):
     """ Remove emojis and other non-safe characters from string """
-    return get_emoji_regexp().sub(u'', inputString)
+    return emoji_list().sub(u'', inputString)
 
 @register(outgoing=True, pattern=r'^.wolfram (.*)')
 async def wolfram(wvent):
