@@ -123,6 +123,11 @@ BG_DEFAULT= os.environ.get("BG_DEFAULT", 'r')
 
 STRING_SESSION = os.environ.get("STRING_SESSION") or None #means heroku
 
+STEAMAPI=os.environ.get("STEAM_API", '0')
+STEAMUSER=os.environ.get("STEAM_USERID", '0')
+
+OSU_USERID=os.environ.get("OSU_USERID", '0')
+
 if STRING_SESSION:
     bot = TelegramClient(StringSession(STRING_SESSION), API_KEY, API_HASH)
 else:

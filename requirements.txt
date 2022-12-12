@@ -56,3 +56,4 @@ testresources
 spotipy
 grpcio
 m3u8_To_MP4
+requests_html
