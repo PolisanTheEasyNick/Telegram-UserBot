@@ -72,13 +72,9 @@ async def update_game_info():
     while True:
       try:
         if enableSteam:
-          print("getting steam info")
           steaminfo = steam_info()
         if enableOsu:
-          print("getting osu info")
           osuinfo = await osu_info()
-          #osuinfo = ""
-          print(f"get osu info: {osuinfo}")
       except Exception as e:
         if BOTLOG:
           await bot.send_message(BOTLOG_CHATID, f"#GAMES: Catched exception:\n{e}.\nWaiting 5 sec and trying again")
@@ -92,11 +88,12 @@ async def update_game_info():
           gameID = steaminfo['response']['players'][0]['gameid']
           gameName = steaminfo['response']['players'][0]['gameextrainfo']
           isPlaying = True
+          isPlayingSteam = True
         except Exception as e:
           #nothing playing in steam
-          print(f"steam: nothing playing")
+          isPlaying = False
+          isPlayingSteam = False
           if "online" in osuinfo:
-            print("osu: online!")
             if isDefault:
               me = await bot.get_me()
               stockEmoji = me.emoji_status.document_id
@@ -125,8 +122,9 @@ async def update_game_info():
             await sleep(10)
             continue
         finally:
-          if isPlaying:
-                #playing some steam game
+          if isPlayingSteam:
+            #playing some steam game
+            isPlaying = True
             print(f"steam: gameID: {gameID}, old: {oldGameID}")
             isDefault = False
             if gameID != oldGameID:
