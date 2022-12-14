@@ -165,7 +165,6 @@ async def update_game_info():
           if isPlayingSteam:
             #playing some steam game
             isPlaying = True
-            isDefault = False
             if gameID != oldGameID:
               oldGameID = gameID
               if gameID in games:
