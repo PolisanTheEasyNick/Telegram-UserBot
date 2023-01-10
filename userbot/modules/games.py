@@ -28,19 +28,21 @@ def osu_info():
 
 async def update_game_info():
   global GAMECHECK
-  global isPlaying
   global isPremium
   global isDefault
   global stockEmoji
   global mustDisable
   global enableOsu
   global enableSteam
+  global isPlaying
   mustDisable = False
   gameID = ""
   gameName = ""
   oldGameID = ""
   oldOsuStatus = ""
-  isPlaying = False
+  isPlayingSteam = False
+  isPlayingOsu = False
+  displayingOsu = False
   games = {
   "osu": 5238084986841607939,
   "977950": 5235672984747779211, #adofai
@@ -58,6 +60,11 @@ async def update_game_info():
   "20900": 5247031932000149461, #Witcher 1
   "20920": 5247031932000149461, #witcher 2
   "292030": 5247031932000149461, #witcher 3
+  "400": 5328109481345690460, #portal 1
+  "620": 5328109481345690460, #portal 2
+  "2012840": 5328109481345690460, #portal rtx
+  "1113560": 5274055672953054735, #nier replicant
+  "524220": 5274055672953054735, #nier automata
   "": 5244764300937011946 #default game icon
   }
   if mustDisable:
@@ -75,12 +82,18 @@ async def update_game_info():
           if BOTLOG:
             await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds.")
           await sleep(e.seconds)
+          await bot(functions.account.UpdateEmojiStatusRequest(
+            emoji_status=types.EmojiStatus(
+             document_id=stockEmoji
+              )
+            ))
       try:
         await bot(UpdateProfileRequest(about=DEFAULT_BIO))
       except FloodWaitError as e:
         if BOTLOG:
           await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
         await sleep(e.seconds)
+        await bot(UpdateProfileRequest(about=DEFAULT_BIO))
       isDefault = True
 
   while GAMECHECK:
@@ -101,118 +114,186 @@ async def update_game_info():
         await sleep(5)
         continue
       break
-    if steaminfo or osuinfo:
-      try:
+    try:
+      if steaminfo:
         await sleep(1)
         try:
           gameID = steaminfo['response']['players'][0]['gameid']
           gameName = steaminfo['response']['players'][0]['gameextrainfo']
-          isPlaying = True
+          print("steam: playing")
           isPlayingSteam = True
-        except Exception as e:
-          #nothing playing in steam
-          isPlaying = False
-          isPlayingSteam = False
-          if osuinfo:
-            if isDefault:
-              me = await bot.get_me()
-              stockEmoji = me.emoji_status.document_id
-              gameBio="🎮: Clicking circles!"
-              try:
-                await bot(UpdateProfileRequest(about=gameBio))
-              except FloodWaitError as e:
-                if BOTLOG:
-                  bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
-                await sleep(e.seconds)
-              isDefault = False
-              if isPremium:
-                try:
-                  await bot(functions.account.UpdateEmojiStatusRequest(
-                    emoji_status=types.EmojiStatus(
-                      document_id=games["osu"]
+          isPlaying = True
+          #playing some steam game
+          if gameID != oldGameID:
+            oldGameID = gameID
+            if gameID in games:
+              if isDefault or isPlayingOsu or isPlayingSteam == False:
+                print("steam: setting")
+                isPlayingSteam == True
+                if isPremium:
+                  try:
+                    await bot(functions.account.UpdateEmojiStatusRequest(
+                      emoji_status=types.EmojiStatus(
+                       document_id=games[gameID]
                       )
                     ))
-                except FloodWaitError as e:
-                  if BOTLOG:
-                   await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
-                  await sleep(e.seconds)
-            isPlaying = True
-            continue
-          else: #osu offline
-            isPlaying = False
-            if isDefault == False:
-              if isPremium:
-                try:
-                  await bot(functions.account.UpdateEmojiStatusRequest(
-                    emoji_status=types.EmojiStatus(
-                      document_id=stockEmoji
+                  except FloodWaitError as e:
+                    if BOTLOG:
+                      await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+                    await sleep(e.seconds)
+                    await bot(functions.account.UpdateEmojiStatusRequest(
+                      emoji_status=types.EmojiStatus(
+                       document_id=games[gameID]
                       )
                     ))
+                gameBio="🎮: " + gameName
+                try:
+                  await bot(UpdateProfileRequest(about=gameBio))
                 except FloodWaitError as e:
                   if BOTLOG:
                     await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
                   await sleep(e.seconds)
+                  await bot(UpdateProfileRequest(about=gameBio))
+                isDefault = False
+                displayingOsu = False
+            else: #custom game
+              print("steam: playing custom")
+              if isDefault or isPlayingOsu or isPlayingSteam == False:
+                print("steam: setting custom game")
+                if isPremium:
+                  try:
+                    await bot(functions.account.UpdateEmojiStatusRequest(
+                      emoji_status=types.EmojiStatus(
+                       document_id=games[""]
+                      )
+                    ))
+                  except FloodWaitError as e:
+                    if BOTLOG:
+                      await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+                    await sleep(e.seconds)
+                    await bot(functions.account.UpdateEmojiStatusRequest(
+                      emoji_status=types.EmojiStatus(
+                       document_id=games[""]
+                      )
+                    ))
+                gameBio="🎮: " + gameName
+                try:
+                  await bot(UpdateProfileRequest(about=gameBio))
+                except FloodWaitError as e:
+                  if BOTLOG:
+                    await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+                  await sleep(e.seconds)
+                  await bot(UpdateProfileRequest(about=gameBio))
+                isDefault = False
+                isPlayingSteam = True
+                displayingOsu = False
+        except:
+          #nothing playing in steam
+          print("steam: nothing")
+          isPlayingSteam = False
+          if isDefault == False and isPlayingOsu == False:
+            print("steam: setting default")
+            if isPremium:
               try:
-                await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+                await bot(functions.account.UpdateEmojiStatusRequest(
+                  emoji_status=types.EmojiStatus(
+                    document_id=stockEmoji
+                    )
+                  ))
               except FloodWaitError as e:
                 if BOTLOG:
                   await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
                 await sleep(e.seconds)
-              isDefault = True
-            await sleep(10)
-            continue
-        finally:
-          if isPlayingSteam:
-            #playing some steam game
-            isPlaying = True
-            if gameID != oldGameID:
-              oldGameID = gameID
-              if gameID in games:
-                if isDefault:
-                  if isPremium:
-                    try:
-                      await bot(functions.account.UpdateEmojiStatusRequest(
-                        emoji_status=types.EmojiStatus(
-                         document_id=games[gameID]
-                        )
-                      ))
-                    except FloodWaitError as e:
-                      if BOTLOG:
-                        await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
-                      await sleep(e.seconds)
-                  gameBio="🎮: " + gameName
-                  try:
-                    await bot(UpdateProfileRequest(about=gameBio))
-                  except FloodWaitError as e:
-                    if BOTLOG:
-                      await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
-                    await sleep(e.seconds)
-                  isDefault = False
-              else: #custom game
-                if isDefault:
-                  if isPremium:
-                    try:
-                      await bot(functions.account.UpdateEmojiStatusRequest(
-                        emoji_status=types.EmojiStatus(
-                         document_id=5467583879948803288
-                        )
-                      ))
-                    except FloodWaitError as e:
-                      if BOTLOG:
-                        await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
-                      await sleep(e.seconds)
-                  gameBio="🎮: " + gameName
-                  try:
-                    await bot(UpdateProfileRequest(about=gameBio))
-                  except FloodWaitError as e:
-                    if BOTLOG:
-                      await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
-                    await sleep(e.seconds)
-                  isDefault = False
-      except Exception as e:
-        if BOTLOG:
-          await bot.send_message(BOTLOG_CHATID, f"#GAMES: Catched exception:\n{e}.\nWaiting 5 sec and trying again")
-        await sleep(5)
+                await bot(functions.account.UpdateEmojiStatusRequest(
+                  emoji_status=types.EmojiStatus(
+                    document_id=stockEmoji
+                    )
+                  ))
+            try:
+              await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+            except FloodWaitError as e:
+              if BOTLOG:
+                await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+              await sleep(e.seconds)
+              await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+            isDefault = True
+          isPlayingSteam = False
+      if osuinfo:
+        #playing osu
+        print("osu: online")
+        isPlaying = True
+        isPlayingOsu = True
+        print(f"default: {isDefault}, isPS: {isPlayingSteam}, dispOsu: {displayingOsu}")
+        if isDefault or (isPlayingSteam == False and displayingOsu == False):
+          print("osu: setting")
+          me = await bot.get_me()
+          stockEmoji = me.emoji_status.document_id
+          gameBio="🎮: Clicking circles!"
+          try:
+            await bot(UpdateProfileRequest(about=gameBio))
+          except FloodWaitError as e:
+            if BOTLOG:
+              bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+            await sleep(e.seconds)
+            await bot(UpdateProfileRequest(about=gameBio))
+          if isPremium:
+            try:
+              await bot(functions.account.UpdateEmojiStatusRequest(
+                emoji_status=types.EmojiStatus(
+                  document_id=games["osu"]
+                  )
+                ))
+            except FloodWaitError as e:
+              if BOTLOG:
+               await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+              await sleep(e.seconds)
+              await bot(functions.account.UpdateEmojiStatusRequest(
+                emoji_status=types.EmojiStatus(
+                  document_id=games["osu"]
+                  )
+                ))
+          isDefault = False
+          isPlayingOsu = True
+          displayingOsu = True
+      else: #osu offline
+        print("osu: offline")
+        isPlayingOsu = False
+        if isPlayingSteam:
+          continue
+        isPlaying = False
+        if isDefault == False:
+          print("osu: setting default")
+          if isPremium:
+            try:
+               await bot(functions.account.UpdateEmojiStatusRequest(
+                emoji_status=types.EmojiStatus(
+                  document_id=stockEmoji
+                  )
+                ))
+            except FloodWaitError as e:
+              if BOTLOG:
+                await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+              await sleep(e.seconds)
+              await bot(functions.account.UpdateEmojiStatusRequest(
+                emoji_status=types.EmojiStatus(
+                  document_id=stockEmoji
+                  )
+                ))
+          try:
+            await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+          except FloodWaitError as e:
+            if BOTLOG:
+              await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+            await sleep(e.seconds)
+            await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+          isDefault = True
+          displayingOsu = False
+        isPlayingOsu = False
+        await sleep(10)
+    except Exception as e:
+      if BOTLOG:
+        await bot.send_message(BOTLOG_CHATID, f"#GAMES: Catched exception:\n{e}.\nWaiting 5 sec and trying again")
+      await sleep(5)
 
 @register(outgoing=True, pattern=r"^\.gameon$")
 async def games(e):
@@ -227,6 +308,8 @@ async def games(e):
   enableOsu = True
   if environ.get("isSuspended") == "True":
     return
+  if GAMECHECK:
+    await e.edit("`Game checker already enabled!`")
   if STEAMAPI == '0' or STEAMUSER == '0':
     e.edit("**Check STEAM_API and STEAM_USERID, module started without Steam checking**")
     enableSteam = False
@@ -271,6 +354,7 @@ async def gamesoff(e):
     if BOTLOG:
       await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
     await sleep(e.seconds)
+    await bot(UpdateProfileRequest(about=DEFAULT_BIO))
   if isPremium:
     try:
       await bot(functions.account.UpdateEmojiStatusRequest(
@@ -282,12 +366,18 @@ async def gamesoff(e):
       if BOTLOG:
        await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
       await sleep(e.seconds)
+      await bot(functions.account.UpdateEmojiStatusRequest(
+        emoji_status=types.EmojiStatus(
+          document_id=stockEmoji
+        )
+      ))
     try:
       await bot(UpdateProfileRequest(about=DEFAULT_BIO))
     except FloodWaitError as e:
       if BOTLOG:
        await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
       await sleep(e.seconds)
+      await bot(UpdateProfileRequest(about=DEFAULT_BIO))
   await e.edit("`Games checker disabled!`")
   if BOTLOG:
     await bot.send_message(BOTLOG_CHATID, '#GAMES\nDisabled games checker')
