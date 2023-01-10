@@ -120,7 +120,6 @@ async def update_game_info():
         try:
           gameID = steaminfo['response']['players'][0]['gameid']
           gameName = steaminfo['response']['players'][0]['gameextrainfo']
-          print("steam: playing")
           isPlayingSteam = True
           isPlaying = True
           #playing some steam game
@@ -128,7 +127,6 @@ async def update_game_info():
             oldGameID = gameID
             if gameID in games:
               if isDefault or isPlayingOsu or isPlayingSteam == False:
-                print("steam: setting")
                 isPlayingSteam == True
                 if isPremium:
                   try:
@@ -157,9 +155,7 @@ async def update_game_info():
                 isDefault = False
                 displayingOsu = False
             else: #custom game
-              print("steam: playing custom")
               if isDefault or isPlayingOsu or isPlayingSteam == False:
-                print("steam: setting custom game")
                 if isPremium:
                   try:
                     await bot(functions.account.UpdateEmojiStatusRequest(
@@ -189,10 +185,8 @@ async def update_game_info():
                 displayingOsu = False
         except:
           #nothing playing in steam
-          print("steam: nothing")
           isPlayingSteam = False
           if isDefault == False and isPlayingOsu == False:
-            print("steam: setting default")
             if isPremium:
               try:
                 await bot(functions.account.UpdateEmojiStatusRequest(
@@ -220,12 +214,9 @@ async def update_game_info():
           isPlayingSteam = False
       if osuinfo:
         #playing osu
-        print("osu: online")
         isPlaying = True
         isPlayingOsu = True
-        print(f"default: {isDefault}, isPS: {isPlayingSteam}, dispOsu: {displayingOsu}")
         if isDefault or (isPlayingSteam == False and displayingOsu == False):
-          print("osu: setting")
           me = await bot.get_me()
           stockEmoji = me.emoji_status.document_id
           gameBio="🎮: Clicking circles!"
@@ -256,13 +247,11 @@ async def update_game_info():
           isPlayingOsu = True
           displayingOsu = True
       else: #osu offline
-        print("osu: offline")
         isPlayingOsu = False
         if isPlayingSteam:
           continue
         isPlaying = False
         if isDefault == False:
-          print("osu: setting default")
           if isPremium:
             try:
                await bot(functions.account.UpdateEmojiStatusRequest(
