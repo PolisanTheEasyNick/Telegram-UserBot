@@ -10,7 +10,7 @@ from osu import Client
 import socket
 import threading
 import time
-from json import loads
+from json import loads, JSONDecodeError
 
 GAMECHECK = False
 stockEmoji = None
@@ -21,6 +21,8 @@ mustDisable = False
 enableSteam = True
 enableOsu = True
 isPlaying = False
+steamNeedToUpdate = False
+steamUpdated = False
 client = Client.from_client_credentials(OSU_CLIENT_ID, OSU_CLIENT_SECRET, OSU_REDIRECT_URL)
 
 
@@ -32,19 +34,30 @@ def osuServer():
       break
     try:
       with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((host, int(OSU_SERVER_PORT)))
         s.listen()
         conn, addr = s.accept()
+        conn.settimeout(2)
         with conn:
-          while True:
+          #while True:
             if mustDisable:
+              conn.close()
+              s.close()
               break
             try:
               data = conn.recv(1024)
-            except socket.error:
-              break
+              conn.sendall(bytes("received", "UTF-8"))
+            except socket.timeout:
+              conn.close()
+              continue
+            except socket.error as e:
+              conn.close()
+              s.close()
+              time.sleep(5)
+              continue
             if len(data) == 0:
-              break
+              continue
             if data:
               if(osuInfo != data):
                 osuInfo = data.decode("UTF-8")
@@ -54,11 +67,13 @@ def osuServer():
                   osuFile.close()
                 except Exception as e:
                   break
-          s.close()
+        conn.close()
+        s.close()
     except KeyboardInterrupt:
       s.close()
       break
     except Exception as e:
+      s.close()
       time.sleep(5)
 
 def steam_info():
@@ -75,6 +90,8 @@ def osu_info():
     try:
       osuJson = loads(osuInfo)
       return osuJson
+    except JSONDecodeError:
+      return None
     except Exception as e:
       pass #using site method
   return client.get_user(OSU_USERID).is_online
@@ -89,6 +106,8 @@ async def update_game_info():
   global enableOsu
   global enableSteam
   global isPlaying
+  global steamNeedToUpdate
+  global steamUpdated
   mustDisable = False
   gameID = ""
   gameName = ""
@@ -196,14 +215,16 @@ async def update_game_info():
         try:
           gameID = steaminfo['response']['players'][0]['gameid']
           gameName = steaminfo['response']['players'][0]['gameextrainfo']
-          isPlayingSteam = True
           isPlaying = True
           #playing some steam game
-          if gameID != oldGameID:
+          if gameID != oldGameID or steamNeedToUpdate:
             oldGameID = gameID
             if gameID in games:
-              if isDefault or isPlayingOsu or isPlayingSteam == False:
-                isPlayingSteam == True
+              if isDefault or isPlayingOsu or isPlayingSteam == False or (steamNeedToUpdate and steamUpdated == False):
+                if steamNeedToUpdate:
+                  steamNeedToUpdate = False
+                  steamUpdated = True
+                isPlayingSteam = True
                 if isPremium:
                   try:
                     if currentEmoji != games[gameID]:
@@ -235,7 +256,11 @@ async def update_game_info():
                 isDefault = False
                 displayingOsu = False
             else: #custom game
-              if isDefault or isPlayingOsu or isPlayingSteam == False:
+              if isDefault or isPlayingOsu or isPlayingSteam == False or (steamNeedToUpdate and steamUpdated == False):
+                isPlayingSteam = True
+                if steamNeedToUpdate:
+                  steamNeedToUpdate = False
+                  steamUpdated = True
                 if isPremium:
                   try:
                     if currentEmoji != games[""]:
@@ -311,8 +336,16 @@ async def update_game_info():
             title = osuinfo[0]["title"]
             BPM = osuinfo[0]["BPM"]
             SR = osuinfo[0]["SR"]
+            STATUS = osuinfo[0]["STATUS"]
             oldOsuStatus = osuinfo
-            gameBio = f"🎮osu!: {artist} - {title} | 🥁: {BPM} | {SR}*"
+            if STATUS == 2:
+              gameBio = f"🎮osu!: {artist} - {title} | 🥁: {BPM} | {SR}*"
+            elif STATUS == 11:
+              gameBio = f"🎮osu!: Searching for multiplayer lobby"
+            elif STATUS == 12:
+              gameBio = f"🎮osu!: Chilling in multiplayer lobby"
+            else:
+              gameBio = f"🎮osu!: Chilling in main menu"
           except Exception as e:
             gameBio="🎮: Clicking circles!"
           try:
@@ -358,9 +391,12 @@ async def update_game_info():
           isDefault = False
           isPlayingOsu = True
           displayingOsu = True
+          steamUpdated = False
       else: #osu offline
         isPlayingOsu = False
         if isPlayingSteam:
+          if steamUpdated == False:
+            steamNeedToUpdate = True
           continue
         isPlaying = False
         if isDefault == False:
@@ -415,7 +451,10 @@ async def games(e):
   if environ.get("isSuspended") == "True":
     return
   if GAMECHECK:
-    await e.edit("`Game checker already enabled!`")
+    await e.edit("`Game checker already enabled! Updating stock emoji...`")
+    me = await bot.get_me()
+    stockEmoji = me.emoji_status.document_id
+    return
   if STEAMAPI == '0' or STEAMUSER == '0':
     e.edit("**Check STEAM_API and STEAM_USERID, module started without Steam checking**")
     enableSteam = False
