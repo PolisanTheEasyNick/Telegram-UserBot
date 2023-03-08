@@ -10,9 +10,12 @@ import sys
 import random
 from time import sleep
 
+from asyncio import CancelledError
 from userbot import BOTLOG, BOTLOG_CHATID, CMD_HELP, bot
 from userbot.events import register
 from os import environ
+
+shutDown = False
 
 @register(outgoing=True, pattern="^.random")
 async def randomise(items):
@@ -35,7 +38,7 @@ async def randomise(items):
                      random.choice(itemo) + "`")
 
 
-@register(outgoing=True, pattern="^.sleep( [0-9]+)?$")
+@register(outgoing=True, pattern="a^.sleep( [0-9]+)?$")
 async def sleepybot(time):
     """ For .sleep command, let the userbot snooze for a few second. """
     if environ.get("isSuspended") == "True":
@@ -64,7 +67,14 @@ async def killdabot(event):
     open("./temp.txt", 'w').close
     f = open("./temp.txt", "w+")
     f.write("False")
-    await bot.disconnect()
+    global shutDown
+    shutDown = True
+    try:
+      await bot.disconnect()
+    except CancelledError:
+      pass
+    except Exception as e:
+      print(f"Error while shutdown: {e}")
 
 
 @register(outgoing=True, pattern="^\.restart$")
@@ -76,7 +86,14 @@ async def killdabot(event):
     open("./temp.txt", 'w').close
     f = open("./temp.txt", "w+")
     f.write("True")
-    await bot.disconnect()
+    global shutDown
+    shutDown = True
+    try:
+      await bot.disconnect()
+    except CancelledError:
+      pass
+    except Exception as e:
+      print(f"Error while restarting: {e}")
 
 @register(outgoing=True, pattern="^.support$")
 async def bot_support(wannahelp):
