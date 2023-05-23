@@ -125,12 +125,14 @@ STRING_SESSION = os.environ.get("STRING_SESSION") or None #means heroku
 
 STEAMAPI=os.environ.get("STEAM_API", '0')
 STEAMUSER=os.environ.get("STEAM_USERID", '0')
-
+STEAM_PROFILE_LINK=os.environ.get("STEAM_PROFILE_LINK", "")
 OSU_USERID=os.environ.get("OSU_USERID", '0')
 OSU_CLIENT_ID=os.environ.get("OSU_CLIENT_ID", '0')
 OSU_CLIENT_SECRET=os.environ.get("OSU_CLIENT_SECRET", '0')
 OSU_REDIRECT_URL=os.environ.get("OSU_REDIRECT_URL", '0')
 OSU_SERVER_PORT=os.environ.get("OSU_SERVER_PORT", '0')
+
+
 
 if STRING_SESSION:
     bot = TelegramClient(StringSession(STRING_SESSION), API_KEY, API_HASH)
