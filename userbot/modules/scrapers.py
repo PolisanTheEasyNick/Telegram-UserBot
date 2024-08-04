@@ -16,7 +16,6 @@ from urllib.error import HTTPError
 from emoji import emoji_list
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googletrans import LANGUAGES, Translator
 from pytube import YouTube
 from pytube.helpers import safe_filename
 from requests import get
@@ -203,39 +202,39 @@ async def text_to_speech(query):
 
 @register(outgoing=True, pattern=r"^.trt(?: |$)([\s\S]*)")
 async def translateme(trans):
-    """ For .trt command, translate the given text using Google Translate. """
-    if environ.get("isSuspended") == "True":
-        return
-    translator = Translator()
-    textx = await trans.get_reply_message()
-    message = trans.pattern_match.group(1)
-    if message:
-        pass
-    elif textx:
-        message = textx.text
-    else:
-        await trans.edit("`Give a text or reply "
-                         "to a message to translate!`")
-        return
+   """ For .trt command, translate the given text using Google Translate. """
+   if environ.get("isSuspended") == "True":
+       return
+   translator = Translator()
+   textx = await trans.get_reply_message()
+   message = trans.pattern_match.group(1)
+   if message:
+       pass
+   elif textx:
+       message = textx.text
+   else:
+       await trans.edit("`Give a text or reply "
+                        "to a message to translate!`")
+       return
 
-    try:
-        reply_text = translator.translate(deEmojify(message), dest=LANG)
-    except ValueError:
-        await trans.edit("Invalid destination language.")
-        return
+   try:
+       reply_text = translator.translate(deEmojify(message), dest=LANG)
+   except ValueError:
+       await trans.edit("Invalid destination language.")
+       return
 
-    source_lan = LANGUAGES[f'{reply_text.src.lower()}']
-    transl_lan = LANGUAGES[f'{reply_text.dest.lower()}']
-    reply_text = f"**Source ({source_lan.title()}):**`\n{message}`**\n\
+   source_lan = LANGUAGES[f'{reply_text.src.lower()}']
+   transl_lan = LANGUAGES[f'{reply_text.dest.lower()}']
+   reply_text = f"**Source ({source_lan.title()}):**`\n{message}`**\n\
 \nTranslation ({transl_lan.title()}):**`\n{reply_text.text}`"
 
-    await trans.client.send_message(trans.chat_id, reply_text)
-    await trans.delete()
-    if BOTLOG:
-        await trans.client.send_message(
-            BOTLOG_CHATID,
-            f"Translate query {message} was executed successfully",
-        )
+   await trans.client.send_message(trans.chat_id, reply_text)
+   await trans.delete()
+   if BOTLOG:
+       await trans.client.send_message(
+           BOTLOG_CHATID,
+           f"Translate query {message} was executed successfully",
+       )
 
 
 @register(pattern="^.lang (.*)", outgoing=True)

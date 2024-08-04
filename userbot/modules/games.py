@@ -31,7 +31,7 @@ games_emoji_list = {
     "osu": (5238084986841607939,),
     "977950": ("A Dance of Fire and Ice", 5235672984747779211),
     "1091500": ("Cyberpunk 2077", 5244454474881180648),
-    "730": ("Counter-Strike: Global Offensive", 5242547097084897042),
+    "730": ("Counter-Strike 2", 5242547097084897042),
     "33230": ("Assassin's Creed II", 5242331923518332969),
     "48190": ("Assassin's Creed Brotherhood", 5242331923518332969),
     "201870": ("Assassin's Creed Revelations", 5242331923518332969),
@@ -42,14 +42,15 @@ games_emoji_list = {
     "311560": ("Assassin's Creed Rogue", 5242331923518332969),
     "1245620": ("ELDEN RING", 5247083299809009542),
     "20900": ("The Witcher: Enhanced Edition", 5402292448539978864),
-    "20920": ("The Witcher 2: Assassins of Kings Enhanced Edition", 5402508708733266023),
+    "20920": ("The Witcher 2: Assassins of Kings Enhanced Edition", 5276175256493503130),
     "292030": ("The Witcher 3: Wild Hunt", 5247031932000149461),
     "400": ("Portal", 5328109481345690460),
     "620": ("Portal 2", 5328109481345690460),
     "2012840": ("Portal with RTX", 5328109481345690460),
     "1113560": ("NieR Replicant ver.1.22474487139...", 5274055672953054735),
     "524220": ("NieR: Automata", 5274055672953054735),
-    "244210": ("Assetto Corsa", 5402495261190663483),
+    "244210": ("Assetto Corsa", 5224687128419511287),
+    "805550": ("Assetto Corsa Competizione", 5224687128419511287),
     "1174180": ("Red Dead Redemption 2", 5400083783082845798),
     "275850": ("No Man's Sky", 5402372098708481565),
     "990080": ("Hogwarts Legacy", 5402498941977634892),
@@ -69,12 +70,22 @@ games_emoji_list = {
     "1190460": ("DEATH STRANDING", 5402127916932801115),
     "870780": ("Control Ultimate Edition", 5402430304105275959),
     "493490": ("City Car Driving", 5402374224717291970),
+    "1782380": ("SCP: Containment Breach Multiplayer", 5222479781517342513),
+    "4500": ("S.T.A.L.K.E.R.: Shadow of Chernobyl", 5426959893124884146),
+    "20510": ("S.T.A.L.K.E.R.: Clear Sky", 5426959893124884146),
+    "41700": ("S.T.A.L.K.E.R.: Call of Pripyat", 5426959893124884146),
+    "1643320": ("S.T.A.L.K.E.R. 2: Heart of Chornobyl", 5426959893124884146),
+    "570940": ("DARK SOULS™: REMASTERED", 5433797867607180465),
+    "335300": ("DARK SOULS™ II: Scholar of the First Sin", 5433797867607180465),
+    "374320": ("DARK SOULS™ III", 5433797867607180465),
+    "814380": ("Sekiro™: Shadows Die Twice", 5418100573889117350),
     "": ("default game icon", 5244764300937011946)
 }
 
 #if passed game name -> returns game steam id
 #if passed game steam id -> return emoji id
 def get_game(key):
+    key = key.strip()
     for game_id, game_info in games_emoji_list.items():
       if game_info[0] == key:
         return game_id
@@ -385,6 +396,13 @@ async def update_game_info():
               gameBio = f"🎮osu!: Searching for multiplayer lobby"
             elif STATUS == 12:
               gameBio = f"🎮osu!: Chilling in multiplayer lobby"
+            elif STATUS == 3 or STATUS == -1: #game shutdown animation
+              try: #writing "none" into osuTemp file so next step will take care
+                osuFile = open("osuTemp", "w")
+                osuFile.write("none")
+                osuFile.close()
+              except Exception as e:
+                break
             else:
               gameBio = f"🎮osu!: Chilling in main menu"
           except Exception as e:
@@ -515,6 +533,7 @@ async def gameon(e):
     return
   me = await bot.get_me()
   stockEmoji = me.emoji_status.document_id
+  
   isPremium = me.premium
   if GAMECHECK == False:
     await e.edit("`Game checker enabled!`")
@@ -575,21 +594,9 @@ async def gameoff(e):
   if BOTLOG:
     await bot.send_message(BOTLOG_CHATID, '#GAMES\nDisabled games checker')
 
-
-@register(outgoing=True, pattern=r"^\.getemoji$")
-async def getEmoji(e):
-  me = await bot.get_me()
-  isPremium = me.premium
-  if isPremium:
-    await e.edit(f"**Current emoji at status ID:** `{me.emoji_status.document_id}`")
-    return
-  else:
-    await e.edit(f"**You need Telegram Premium for accessing current emoji status ID**")
-
 CMD_HELP.update({"Games": ['games',
     " - `.gameon`: Enable games bio and emoji updating.\n"
     " - `.gameoff`: Disable games bio and emoji updating.\n"
-    " - `.getemoji`: Get ID of current status emoji.\n"
     ]
 })
 

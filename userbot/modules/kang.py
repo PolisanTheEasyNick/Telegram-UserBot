@@ -63,6 +63,7 @@ async def stick(args):
             await args.edit("**Sending...**")
             await args.client.send_file(args.chat_id, result, reply_to=message, force_document=True)
             os.remove("sticker.tgs")
+
 @register(outgoing=True, pattern="^.kang")
 async def kang(args):
     if environ.get("isSuspended") == "True":
@@ -346,8 +347,39 @@ async def get_pack_info(event):
     await event.edit(OUTPUT)
     
     
+@register(outgoing=True, pattern="^.sticker$")
+async def get_sticker(event):
+    if environ.get("isSuspended") == "True":
+        return
+    message = await event.get_reply_message()
+    photo = None
 
-   
+    if message and message.media:
+        if isinstance(message.media, MessageMediaPhoto):
+            await event.edit(f"`{random.choice(KANGING_STR)}`")
+            photo = io.BytesIO()
+            photo = await bot.download_media(message.photo, photo)
+    else:
+        await event.edit("`Reply to message with photo`")
+        return
+
+    if photo:
+        file = io.BytesIO()
+        image = await resize_photo(photo)
+        file.name = "sticker.png"
+        image.save(file, "PNG")
+        file.seek(0)
+        chatid = None
+        try: #custom chat
+            chatid = event.original_update.user_id
+        except: #saved messages
+            chatid = event.chat.id
+        await event.client.send_file(chatid, file=file, force_document=True, reply_to=message)
+        await event.delete()
+    else:
+        await event.edit("`Error while downloading photo`")
+
+
 CMD_HELP.update({"kang": ["Kang",
     " - `.kang <emoji> <number>`: Reply .kang to a sticker or an image to kang "
     "it to your Paperplane pack.\n"
