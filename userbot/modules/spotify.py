@@ -17,11 +17,12 @@ from pytube import YouTube
 from pytube.helpers import safe_filename
 from telethon import types
 msg_for_percentage = types.Message
-from userbot import (BIO_PREFIX, BOTLOG, BOTLOG_CHATID, CMD_HELP, DEFAULT_BIO, bot)
+from userbot import (BIO_PREFIX, BOTLOG, BOTLOG_CHATID, CMD_HELP, bot)
 from userbot.events import register
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TIT2, TPE2, TOPE, TPE1
 import userbot.modules.games as games
+from userbot.modules.status import getStatus
 
 # =================== CONSTANT ===================
 SPO_BIO_ENABLED = "`Spotify current music to bio has been successfully enabled.`"
@@ -153,7 +154,7 @@ async def update_spotify_info():
         else: #means no data. NO need to update. Trying to get again by new loop
             if isDefault == False:
               try:
-                await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+                await bot(UpdateProfileRequest(about=await getStatus()))
               except errors.FloodWaitError as e:
                 await sleep(e.seconds)
             isDefault = True
@@ -367,7 +368,7 @@ async def set_biodgraph(setdbio):
     global mustDisable
     SPOTIFYCHECK = False
     mustDisable = True
-    await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+    await bot(UpdateProfileRequest(about=await getStatus()))
     await setdbio.edit(SPO_BIO_DISABLED)
     if BOTLOG:
       await bot.send_message(BOTLOG_CHATID, '#SPOTIFY\nDisabled spotify update bio loop')

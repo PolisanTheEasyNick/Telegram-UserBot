@@ -11,7 +11,7 @@ from telethon.tl.functions.account import UpdateProfileRequest
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import User as Userbot
 
-from userbot import (BIO_PREFIX, BOTLOG, BOTLOG_CHATID, CMD_HELP, DEFAULT_BIO,
+from userbot import (BIO_PREFIX, BOTLOG, BOTLOG_CHATID, CMD_HELP,
                      LASTFM_USERNAME, bot, lastfm)
 from userbot.events import register
 
@@ -144,20 +144,20 @@ async def get_curr_track(lfmbio):
                     short_bio = f"🎧: {SONG}"
                     await bot(UpdateProfileRequest(about=short_bio))
             else:
-                if playing is None and user_info.about != DEFAULT_BIO:
+                if playing is None and user_info.about != await getStatus():
                     await sleep(6)
-                    await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+                    await bot(UpdateProfileRequest(about=await getStatus()))
                     if BOTLOG and LastLog:
                         await bot.send_message(
-                            BOTLOG_CHATID, f"Reset bio back to\n{DEFAULT_BIO}")
+                            BOTLOG_CHATID, f"Reset bio back to\n{await getStatus()}")
         except AttributeError:
             try:
-                if user_info.about != DEFAULT_BIO:
+                if user_info.about != await getStatus():
                     await sleep(6)
-                    await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+                    await bot(UpdateProfileRequest(about=await getStatus()))
                     if BOTLOG and LastLog:
                         await bot.send_message(
-                            BOTLOG_CHATID, f"Reset bio back to\n{DEFAULT_BIO}")
+                            BOTLOG_CHATID, f"Reset bio back to\n{await getStatus()}")
             except FloodWaitError as err:
                 if BOTLOG and LastLog:
                     await bot.send_message(BOTLOG_CHATID,
@@ -194,7 +194,7 @@ async def lastbio(lfmbio):
     elif arg == "off":
         LASTFMCHECK = False
         RUNNING = False
-        await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+        await bot(UpdateProfileRequest(about=await getStatus()))
         await lfmbio.edit(LFM_BIO_DISABLED)
     else:
         await lfmbio.edit(LFM_BIO_ERR)

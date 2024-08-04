@@ -131,7 +131,7 @@ OSU_CLIENT_ID=os.environ.get("OSU_CLIENT_ID", '0')
 OSU_CLIENT_SECRET=os.environ.get("OSU_CLIENT_SECRET", '0')
 OSU_REDIRECT_URL=os.environ.get("OSU_REDIRECT_URL", '0')
 OSU_SERVER_PORT=os.environ.get("OSU_SERVER_PORT", '0')
-
+QUOTES_LIST_PATH=os.environ.get("QUOTES_LIST_PATH", "")
 
 
 if STRING_SESSION:

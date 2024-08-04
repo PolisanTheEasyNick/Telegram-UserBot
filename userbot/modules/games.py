@@ -1,4 +1,4 @@
-from userbot import BOTLOG, bot, BOTLOG_CHATID, CMD_HELP, STEAMAPI, STEAMUSER, DEFAULT_BIO, OSU_USERID, OSU_CLIENT_ID, OSU_CLIENT_SECRET, OSU_REDIRECT_URL, OSU_SERVER_PORT, STEAM_PROFILE_LINK
+from userbot import BOTLOG, bot, BOTLOG_CHATID, CMD_HELP, STEAMAPI, STEAMUSER, OSU_USERID, OSU_CLIENT_ID, OSU_CLIENT_SECRET, OSU_REDIRECT_URL, OSU_SERVER_PORT, STEAM_PROFILE_LINK
 from userbot.events import register
 from os import environ
 import requests
@@ -13,6 +13,7 @@ import threading
 import time
 from json import loads, JSONDecodeError
 import userbot.modules.misc as miscModule
+from userbot.modules.status import getStatus
 
 GAMECHECK = False
 stockEmoji = None
@@ -236,12 +237,12 @@ async def update_game_info():
               ))
             currentEmoji = stockEmoji
       try:
-        await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+        await bot(UpdateProfileRequest(about=await getStatus()))
       except FloodWaitError as e:
         if BOTLOG:
           await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
         await sleep(e.seconds)
-        await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+        await bot(UpdateProfileRequest(about=await getStatus()))
       isDefault = True
 
   while GAMECHECK:
@@ -370,12 +371,12 @@ async def update_game_info():
                     ))
                   currentEmoji=stockEmoji
             try:
-              await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+              await bot(UpdateProfileRequest(about=await getStatus()))
             except FloodWaitError as e:
               if BOTLOG:
                 await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
               await sleep(e.seconds)
-              await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+              await bot(UpdateProfileRequest(about=await getStatus()))
             isDefault = True
           isPlayingSteam = False
       if enableOsu and osuinfo:
@@ -483,12 +484,12 @@ async def update_game_info():
                   ))
                 currentEmoji = stockEmoji
           try:
-            await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+            await bot(UpdateProfileRequest(about=await getStatus()))
           except FloodWaitError as e:
             if BOTLOG:
               await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
             await sleep(e.seconds)
-            await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+            await bot(UpdateProfileRequest(about=await getStatus()))
           isDefault = True
           displayingOsu = False
         isPlayingOsu = False
@@ -533,7 +534,7 @@ async def gameon(e):
     return
   me = await bot.get_me()
   stockEmoji = me.emoji_status.document_id
-  
+
   isPremium = me.premium
   if GAMECHECK == False:
     await e.edit("`Game checker enabled!`")
@@ -557,12 +558,12 @@ async def gameoff(e):
   GAMECHECK = False
   mustDisable = True
   try:
-    await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+    await bot(UpdateProfileRequest(about=await getStatus()))
   except FloodWaitError as e:
     if BOTLOG:
       await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
     await sleep(e.seconds)
-    await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+    await bot(UpdateProfileRequest(about=await getStatus()))
   if isPremium:
     try:
       if currentEmoji != stockEmoji:
@@ -584,12 +585,12 @@ async def gameoff(e):
         ))
         currentEmoji = stockEmoji
     try:
-      await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+      await bot(UpdateProfileRequest(about=await getStatus()))
     except FloodWaitError as e:
       if BOTLOG:
        await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
       await sleep(e.seconds)
-      await bot(UpdateProfileRequest(about=DEFAULT_BIO))
+      await bot(UpdateProfileRequest(about=await getStatus()))
   await e.edit("`Games checker disabled!`")
   if BOTLOG:
     await bot.send_message(BOTLOG_CHATID, '#GAMES\nDisabled games checker')
