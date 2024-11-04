@@ -3,12 +3,12 @@ from userbot.events import register
 from os import environ
 import requests
 from bs4 import BeautifulSoup
-from asyncio import sleep, gather, get_event_loop
+from asyncio import sleep, gather, get_event_loop, new_event_loop
 from telethon import functions, types
 from telethon.tl.functions.account import UpdateProfileRequest
-from telethon.errors.rpcerrorlist import FloodWaitError
+from telethon.errors.rpcerrorlist import FloodWaitError, AboutTooLongError
 from osu import Client
-import socket
+import websockets
 import threading
 import time
 from json import loads, JSONDecodeError
@@ -26,6 +26,7 @@ enableOsu = True
 isPlaying = False
 steamNeedToUpdate = False
 steamUpdated = False
+osuInfo = "none"
 client = Client.from_client_credentials(OSU_CLIENT_ID, OSU_CLIENT_SECRET, OSU_REDIRECT_URL)
 
 games_emoji_list = {
@@ -94,55 +95,44 @@ def get_game(key):
         return game_info[-1]
     return None
 
-def osuServer():
-  osuInfo = "none"
-  host = "0.0.0.0"
-  while not mustDisable and not miscModule.shutDown:
-    try:
-      with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((host, int(OSU_SERVER_PORT)))
-        s.settimeout(2) #listening for 2 seconds for shutdown or restart case
-        s.listen()
-        conn, addr = s.accept()
-        conn.settimeout(2)
-        with conn:
-          if mustDisable:
-            conn.close()
-            s.close()
-            break
-          try:
-            data = conn.recv(1024)
-            conn.sendall(bytes("received", "UTF-8"))
-          except socket.timeout:
-            conn.close()
-            continue
-          except socket.error as e:
-            conn.close()
-            s.close()
-            time.sleep(5)
-            continue
-          if len(data) == 0:
-            continue
-          if data:
-            if(osuInfo != data):
-              osuInfo = data.decode("UTF-8")
-              try:
-                osuFile = open("osuTemp", "w")
-                osuFile.write(osuInfo)
-                osuFile.close()
-              except Exception as e:
-                break
-      conn.close()
-      s.close()
-    except KeyboardInterrupt:
-      s.close()
-      break
-    except Exception as e:
-      s.close()
-      time.sleep(5)
 
-serverThread = threading.Thread(target=osuServer, name="Osu server for receiving info")
+async def handle_osu_ws_client(websocket, path):
+    global osuInfo
+    try:
+        async for message in websocket:
+            osuInfo = message
+            #print("osu!: Received data from client:", osuInfo)
+            try:
+                # Write the received data to a file
+                with open("osuTemp", "w") as osuFile:
+                    osuFile.write(osuInfo)
+                print("osu!:Data written to osuTemp file.")
+            except Exception as e:
+                print(f"osu!:Error writing to file: {e}")
+    except websockets.exceptions.ConnectionClosed as e:
+        print(f"osu!:Connection closed: {e}")
+    except Exception as e:
+        print(f"osu!: Error handling client: {e}")
+
+async def osu_server():
+    global mustDisable
+    server = await websockets.serve(handle_osu_ws_client, "0.0.0.0", OSU_SERVER_PORT)
+    print(f"osu!: WebSocket server started on ws://0.0.0.0:{OSU_SERVER_PORT}")
+
+    async def monitor_shutdown():
+        while not mustDisable:
+            await sleep(1)  
+        print("osu!: mustDisable is True, shutting down the WebSocket server...")
+        server.close()  
+        await server.wait_closed()
+
+    await gather(server.wait_closed(), monitor_shutdown())
+
+def start_osu_ws_server():
+    new_event_loop().run_until_complete(osu_server())
+
+
+serverThread = threading.Thread(target=start_osu_ws_server, name="osu! WebSocket server")
 
 def steam_info():
   response = requests.get(f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={STEAMAPI}&steamids={STEAMUSER}')
@@ -181,7 +171,7 @@ def osu_info():
     osuFile = open("osuTemp", "r")
     osuInfo = osuFile.read()
     osuFile.close()
-    if osuInfo == "none":
+    if osuInfo == "none" or osuInfo == "None" or osuInfo == "":
       return None
     try:
       osuJson = loads(osuInfo)
@@ -380,6 +370,7 @@ async def update_game_info():
             isDefault = True
           isPlayingSteam = False
       if enableOsu and osuinfo:
+        #print(f"osu info: {osuinfo}")
         #playing osu
         isPlaying = True
         isPlayingOsu = True
@@ -408,7 +399,7 @@ async def update_game_info():
               gameBio = f"🎮osu!: Chilling in main menu"
           except Exception as e:
             if BOTLOG:
-              bot.send_message(BOTLOG_CHATID, f"#GAMES\nOSU!: Exception {e} while trying to parse info from client")
+              await bot.send_message(BOTLOG_CHATID, f"#GAMES\nOSU!: Exception {e} while trying to parse info from client")
             gameBio="🎮: Clicking circles!"
           try:
             await bot(UpdateProfileRequest(about=gameBio))
@@ -427,7 +418,7 @@ async def update_game_info():
               await bot(UpdateProfileRequest(about=gameBio))
           except FloodWaitError as e:
             if BOTLOG:
-              bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
+              await bot.send_message(BOTLOG_CHATID, f"#GAMES\nFloodWaitError: waiting {e.seconds} seconds")
             await sleep(e.seconds)
             await bot(UpdateProfileRequest(about=gameBio))
           if isPremium:
@@ -541,7 +532,7 @@ async def gameon(e):
     if BOTLOG:
       await bot.send_message(BOTLOG_CHATID, "#GAMES\nEnabled game checker")
     GAMECHECK = True
-    serverThread = threading.Thread(target=osuServer, name="Osu server for receiving info")
+    serverThread = threading.Thread(target=start_osu_ws_server, name="osu! WebSocket server")
     serverThread.start()
     await update_game_info()
   
