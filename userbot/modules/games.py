@@ -106,13 +106,17 @@ async def handle_osu_ws_client(websocket, path):
                 # Write the received data to a file
                 with open("osuTemp", "w") as osuFile:
                     osuFile.write(osuInfo)
-                print("osu!:Data written to osuTemp file.")
+                #print("osu!:Data written to osuTemp file.")
             except Exception as e:
                 print(f"osu!:Error writing to file: {e}")
     except websockets.exceptions.ConnectionClosed as e:
         print(f"osu!:Connection closed: {e}")
+        with open("osuTemp", "w") as osuFile:
+          osuFile.write("None")
     except Exception as e:
         print(f"osu!: Error handling client: {e}")
+        with open("osuTemp", "w") as osuFile:
+          osuFile.write("None")
 
 async def osu_server():
     global mustDisable
@@ -370,17 +374,15 @@ async def update_game_info():
             isDefault = True
           isPlayingSteam = False
       if enableOsu and osuinfo:
-        #print(f"osu info: {osuinfo}")
-        #playing osu
         isPlaying = True
         isPlayingOsu = True
         if isDefault or (isPlayingSteam == False and displayingOsu == False) or oldOsuStatus != osuinfo:
           try:
-            artist = osuinfo[0]["artist"]
-            title = osuinfo[0]["title"]
-            BPM = osuinfo[0]["BPM"]
-            SR = osuinfo[0]["SR"]
-            STATUS = osuinfo[0]["STATUS"]
+            artist = osuinfo["artist"]
+            title = osuinfo["title"]
+            BPM = osuinfo["BPM"]
+            SR = osuinfo["SR"]
+            STATUS = osuinfo["STATUS"]
             oldOsuStatus = osuinfo
             if STATUS == 2:
               gameBio = f"🎮osu!: {artist} - {title} | 🥁: {BPM} | {SR}*"
